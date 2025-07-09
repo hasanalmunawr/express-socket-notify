@@ -26,6 +26,6 @@ This repository provides a simple real-time notification server built using **Ex
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/your-username/realtime-notif-server.git
-cd realtime-notif-server
+git clone https://github.com/hasanalmunawr/express-socket-notify.git
+cd express-socket-notify
 npm install
