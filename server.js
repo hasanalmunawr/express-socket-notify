@@ -15,6 +15,13 @@ app.get('/', (req, res) => {
     res.send("Server is running")
 })
 
+app.post('/emit-notification', express.json(), (req, res) => {
+    const { message } = req.body;
+    console.log("Receive Notification From API ", { message })
+    io.emit('receive-notification', { message });
+    res.sendStatus(200)
+})
+
 io.on('connection', (socket) => {
     console.log("User Connected: ", socket.id);
 
