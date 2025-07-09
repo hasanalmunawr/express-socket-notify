@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Notifications (Receive)</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Socket.io CDN -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+<div class="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
+    <h1 class="text-2xl font-semibold text-gray-800 mb-4 text-center">📢 Real-Time Notifications</h1>
+
+    <ul id="notifications" class="space-y-2 max-h-80 overflow-y-auto">
+        <!-- Notifikasi akan ditambahkan di sini -->
+    </ul>
+</div>
+
+<script>
+    const socket = io('http://localhost:3000');
+
+    socket.on('receive-notification', (data) => {
+        const li = document.createElement('li');
+        li.className = "bg-blue-100 text-blue-800 px-4 py-2 rounded-md shadow";
+        li.textContent = data.message;
+        document.getElementById('notifications').appendChild(li);
+    });
+</script>
+</body>
+</html>
