@@ -29,3 +29,26 @@ Clone the repository and install dependencies:
 git clone https://github.com/hasanalmunawr/express-socket-notify.git
 cd express-socket-notify
 npm install
+````
+
+## Run The Server
+Start the server with the following command:
+```bash
+  node server.js
+```
+
+## Rest API
+To send a notification via HTTP (e.g., from Postman or Laravel), use the following:
+- Method : ```POST```
+- URL : ```http://localhost:3000/emit-notification```
+- Content-Type : ```application/json```
+
+### Request Body
+Body:
+```bash
+  {
+    "message" : "Sending Notification From API Postman"
+  }
+```
+This will broadcast the message to all connected WebSocket clients under the receive-notification event.
+
