@@ -48,6 +48,7 @@ Body:
 ```bash
   {
     "message" : "Sending Notification From API Postman"
+    "user_id" : 1
   }
 ```
 This will broadcast the message to all connected WebSocket clients under the receive-notification event.

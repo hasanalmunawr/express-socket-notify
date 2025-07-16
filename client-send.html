@@ -28,7 +28,8 @@
     function sendNotification() {
         const dateTime = new Date().toLocaleString();
         socket.emit('send-notification', {
-            message: `New notification sent at ${dateTime}!`
+            message: `New notification sent at ${dateTime}!`,
+            user_id: 1
         });
         alert("Success Send Notification With Socket IO")
     }
