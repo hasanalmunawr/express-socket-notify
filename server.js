@@ -1,6 +1,8 @@
+const fs = require("fs");
+const https = require("https");
 const express = require("express");
-const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const options = {
@@ -11,7 +13,7 @@ const options = {
     "/etc/letsencrypt/live/dev17.arisamandiri.com/fullchain.pem"
   ),
 };
-const server = http.createServer(options, app);
+const server = https.createServer(options, app);
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -90,5 +92,5 @@ io.on("connection", (socket) => {
 // })
 
 server.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+  console.log("🔐 HTTPS Server running on https://dev17.arisamandiri.com:3000");
 });
