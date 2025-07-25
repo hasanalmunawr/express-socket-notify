@@ -1,11 +1,32 @@
 const express = require('express')
-const http = require('http')
+const https = require('https')
+const fileStream = require('fs')
 const bcrypt = require('bcryptjs')
 const { Server } = require('socket.io')
 
+// Konfigurasi TLS/SSL untuk membuat HTTPS server atau mengamankan koneksi socket.io
+let options = {
+    // Membaca private key untuk sertifikat TLS dari file lokal (format .key)
+    // Penting: Pastikan path dan file berisi private key yang valid
+    key: fileStream.readFileSync('/arenvis.arisamandiri.com'),
+
+    // Membaca sertifikat publik (CRT/PEM) untuk TLS dari file lokal
+    // Sertifikat ini biasanya diberikan oleh CA seperti Let's Encrypt atau GlobalSign
+    cert: fileStream.readFileSync('/arenvis.arisamandiri.com'),
+
+    // requestCert: false artinya server tidak meminta sertifikat dari client
+    // Cocok untuk skenario di mana hanya server yang memerlukan sertifikat
+    requestCert: false,
+
+    // rejectUnauthorized: false artinya server tetap menerima koneksi walau client tidak punya sertifikat valid
+    // Perlu hati-hati: pengaturan ini cocok untuk development/testing, tapi **tidak direkomendasikan di production**
+    rejectUnauthorized: false
+};
+
+
 const now = new Date();
 const app = express();
-const server = http.createServer(app);
+const server = https.createServer(options, app);
 const io = new Server( server, {
         cors: {
             origin: '*',
