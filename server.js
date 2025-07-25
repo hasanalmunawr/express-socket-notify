@@ -1,7 +1,9 @@
 const express = require('express')
 const http = require('http')
+const bcrypt = require('bcryptjs')
 const { Server } = require('socket.io')
 
+const now = new Date();
 const app = express();
 const server = http.createServer(app);
 const io = new Server( server, {
@@ -10,6 +12,9 @@ const io = new Server( server, {
             methods: ['GET', 'POST']
         }
 })
+
+// create new directory for auth
+io.of("/devices")
 
 const userSockets = {};
 
@@ -38,16 +43,56 @@ app.post('/emit-notification', (req, res) => {
     res.sendStatus(200);
 })
 
-io.on('connection', (socket) => {
+// Middleware autentikasi untuk koneksi socket.io
+// Digunakan untuk memverifikasi token autentikasi dari client sebelum koneksi socket dibuka
+io.use((socket, next) => {
+    // Cek apakah ada data autentikasi pada handshake
+    if (socket.handshake.auth) {
+        // Ambil token dari data autentikasi
+        const { token } = socket.handshake.auth;
+
+        // Buat tanggal sekarang dalam format YYYYMMDD sebagai bagian dari kunci private
+        const now = new Date();
+        const currentDate = parseInt(
+            `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+        );
+
+        // Buat private key berdasarkan tanggal hari ini
+        const privateKey = "Password:" + currentDate;
+
+        // Bandingkan token dari client dengan private key yang telah dienkripsi menggunakan bcrypt
+        bcrypt.compare(privateKey, token, (err, result) => {
+            if (err || !result) {
+                // Jika terjadi error atau hasil tidak cocok, tolak koneksi
+                next(new Error("Authentication Failed"));
+            } else {
+                // Jika cocok, lanjutkan koneksi
+                next();
+            }
+        });
+    } else {
+        // Jika tidak ada data autentikasi, tolak koneksi
+        next(new Error("Permission Denied"));
+    }
+
+    // Event listener saat ada koneksi socket baru
+}).on('connection', (socket) => {
+    // Ambil user_id dari query parameter saat koneksi socket dibuat
     const userId = socket.handshake.query.user_id;
+    // const token = socket.handshake.query.token;
+
     console.log(`👤 User connected: socket=${socket.id}, user_id=${userId}`);
 
+    // Simpan mapping antara userId dan socket.id untuk keperluan pengiriman notifikasi personal
     if (userId) {
         userSockets[userId] = socket.id;
     }
 
+    // Event listener ketika socket disconnect (terputus)
     socket.on('disconnect', () => {
         console.log(`❌ User disconnected: ${socket.id}`);
+
+        // Hapus user dari daftar userSockets jika socket.id yang disconnect cocok
         for (const [uid, sid] of Object.entries(userSockets)) {
             if (sid === socket.id) {
                 delete userSockets[uid];
