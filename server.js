@@ -1,19 +1,19 @@
-const fs = require("fs");
-const https = require("https");
+// const fs = require("fs");
+const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const path = require("path");
 
 const app = express();
-const options = {
-  key: fs.readFileSync(
-    "/etc/letsencrypt/live/dev17.arisamandiri.com/privkey.pem"
-  ),
-  cert: fs.readFileSync(
-    "/etc/letsencrypt/live/dev17.arisamandiri.com/fullchain.pem"
-  ),
-};
-const server = https.createServer(options, app);
+// const options = {
+//   key: fs.readFileSync(
+//     "/etc/letsencrypt/live/dev17.arisamandiri.com/privkey.pem"
+//   ),
+//   cert: fs.readFileSync(
+//     "/etc/letsencrypt/live/dev17.arisamandiri.com/fullchain.pem"
+//   ),
+// };
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -92,5 +92,5 @@ io.on("connection", (socket) => {
 // })
 
 server.listen(3000, () => {
-  console.log("🔐 HTTPS Server running on https://dev17.arisamandiri.com:3000");
+  console.log("🔐 HTTP Server running on http://dev17.arisamandiri.com");
 });
