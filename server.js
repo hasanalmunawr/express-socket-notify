@@ -102,11 +102,16 @@ io.use((socket, next) => {
         console.log("Tidak Cocok Token nya");
 
         next(new Error("Authentication Failed"));
-      } else {
-        console.log("Cocok Token nya");
-        // Jika cocok, lanjutkan koneksi
-        next();
       }
+      // ✅ Token cocok → Cek apakah user_id sudah terhubung sebelumnya
+      if (userSockets[user_id] && userSockets[user_id] !== socket.id) {
+        console.log(
+          `⚠️ User ${user_id} sudah login dari socket lain. Menolak koneksi.`
+        );
+        return next(new Error("User already connected"));
+      }
+
+      next();
     });
   } else {
     console.error("Tidak Ada data authenticasi pada Handshake");
