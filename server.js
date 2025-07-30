@@ -5,25 +5,6 @@ const bcrypt = require("bcryptjs");
 const { Server } = require("socket.io");
 const { log } = require("console");
 
-// Konfigurasi TLS/SSL untuk membuat HTTPS server atau mengamankan koneksi socket.io
-// let options = {
-//     // Membaca private key untuk sertifikat TLS dari file lokal (format .key)
-//     // Penting: Pastikan path dan file berisi private key yang valid
-//     key: fileStream.readFileSync('/arenvis.arisamandiri.com'),
-
-//     // Membaca sertifikat publik (CRT/PEM) untuk TLS dari file lokal
-//     // Sertifikat ini biasanya diberikan oleh CA seperti Let's Encrypt atau GlobalSign
-//     cert: fileStream.readFileSync('/arenvis.arisamandiri.com'),
-
-//     // requestCert: false artinya server tidak meminta sertifikat dari client
-//     // Cocok untuk skenario di mana hanya server yang memerlukan sertifikat
-//     requestCert: false,
-
-//     // rejectUnauthorized: false artinya server tetap menerima koneksi walau client tidak punya sertifikat valid
-//     // Perlu hati-hati: pengaturan ini cocok untuk development/testing, tapi **tidak direkomendasikan di production**
-//     rejectUnauthorized: false
-// };
-
 const now = new Date();
 const app = express();
 const server = https.createServer(app);
@@ -48,36 +29,6 @@ app.get("/", (req, res) => {
 app.get("/client-receiving", (req, res) => {
   res.sendFile(path.join(__dirname, "client-receive.html"));
 });
-
-// app.post("/emit-notification", async (req, res) => {
-//   const { message, user_id, token } = req.body;
-
-//   // Step 1: Buat ulang privateKey
-//   const privateKey = generatePrivateKey();
-
-//   // Step 2: Bandingkan token dari body
-//   const valid = await bcrypt.compare(privateKey, token);
-//   if (!valid) {
-//     console.log("❌ Token tidak valid untuk emit-notification");
-//     return res.status(401).json({ error: "Unauthorized" });
-//   }
-
-//   // Step 3: Lanjut kirim notifikasi
-//   console.log("✅ Token valid, Receive Notification From API", {
-//     user_id,
-//     message,
-//   });
-
-//   const targetSocketId = userSockets[user_id];
-//   if (targetSocketId) {
-//     io.to(targetSocketId).emit("receive-notification", { message });
-//     console.log(`✅ Notification sent to user ${user_id}`);
-//   } else {
-//     console.log(`⚠️ User ${user_id} is not connected`);
-//   }
-
-//   res.sendStatus(200);
-// });
 
 const userRateLimit = {};
 // Middleware autentikasi untuk koneksi socket.io
@@ -179,31 +130,7 @@ io.use((socket, next) => {
   });
 });
 
-// app.post('/emit-notification', express.json(), (req, res) => {
-//     const { message, user_id } = req.body;
-//     console.log("Receive Notification From API ", { message })
-//     io.emit('receive-notification', { message, user_id });
-//     res.sendStatus(200)
-// })
-
-// io.on('connection', (socket) => {
-//     console.log("User Connected: ", socket.id);
-//     const userId = socket.handshake.query.user_id;
-
-//     if (userId) {
-//          userSockets[userId] = socket.id;
-//     }
-//     socket.on('send-notification', (data) => {
-//         io.emit('receive-notification', data)
-//         console.log("receive-notification", data);
-//     })
-
-//     socket.on('disconnect', () => {
-//         console.log('User disconnected:', socket.id);
-//     });
-// })
-
-server.listen(3000, () => {
+server.listen(3003, () => {
   console.log("Server running on http://localhost:3000");
 });
 
