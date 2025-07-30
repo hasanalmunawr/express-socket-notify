@@ -49,9 +49,24 @@ app.get("/client-receiving", (req, res) => {
   res.sendFile(path.join(__dirname, "client-receive.html"));
 });
 
-app.post("/emit-notification", (req, res) => {
-  const { message, user_id } = req.body;
-  console.log("Receive Notification From API", { user_id, message });
+app.post("/emit-notification", async (req, res) => {
+  const { message, user_id, token } = req.body;
+
+  // Step 1: Buat ulang privateKey
+  const privateKey = generatePrivateKey();
+
+  // Step 2: Bandingkan token dari body
+  const valid = await bcrypt.compare(privateKey, token);
+  if (!valid) {
+    console.log("❌ Token tidak valid untuk emit-notification");
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  // Step 3: Lanjut kirim notifikasi
+  console.log("✅ Token valid, Receive Notification From API", {
+    user_id,
+    message,
+  });
 
   const targetSocketId = userSockets[user_id];
   if (targetSocketId) {
@@ -77,17 +92,8 @@ io.use((socket, next) => {
         " dan ini user id nya ? " +
         user_id
     );
-    // Buat tanggal sekarang dalam format YYYYMMDD sebagai bagian dari kunci private
-    const now = new Date();
-    const currentDate = parseInt(
-      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}${String(now.getDate()).padStart(2, "0")}`
-    );
 
-    // Buat private key berdasarkan tanggal hari ini
-    const privateKey = "Password:" + currentDate;
+    const privateKey = generatePrivateKey();
 
     // Bandingkan token dari client dengan private key yang telah dienkripsi menggunakan bcrypt
     bcrypt.compare(privateKey, token, (err, result) => {
@@ -162,3 +168,11 @@ io.use((socket, next) => {
 server.listen(3000, () => {
   console.log("Server running on http://localhost:3000");
 });
+
+function generatePrivateKey() {
+  const now = new Date();
+  const currentDate = `${now.getFullYear()}${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  return "Password:" + currentDate;
+}
