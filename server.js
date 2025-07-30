@@ -49,36 +49,37 @@ app.get("/client-receiving", (req, res) => {
   res.sendFile(path.join(__dirname, "client-receive.html"));
 });
 
-app.post("/emit-notification", async (req, res) => {
-  const { message, user_id, token } = req.body;
+// app.post("/emit-notification", async (req, res) => {
+//   const { message, user_id, token } = req.body;
 
-  // Step 1: Buat ulang privateKey
-  const privateKey = generatePrivateKey();
+//   // Step 1: Buat ulang privateKey
+//   const privateKey = generatePrivateKey();
 
-  // Step 2: Bandingkan token dari body
-  const valid = await bcrypt.compare(privateKey, token);
-  if (!valid) {
-    console.log("❌ Token tidak valid untuk emit-notification");
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+//   // Step 2: Bandingkan token dari body
+//   const valid = await bcrypt.compare(privateKey, token);
+//   if (!valid) {
+//     console.log("❌ Token tidak valid untuk emit-notification");
+//     return res.status(401).json({ error: "Unauthorized" });
+//   }
 
-  // Step 3: Lanjut kirim notifikasi
-  console.log("✅ Token valid, Receive Notification From API", {
-    user_id,
-    message,
-  });
+//   // Step 3: Lanjut kirim notifikasi
+//   console.log("✅ Token valid, Receive Notification From API", {
+//     user_id,
+//     message,
+//   });
 
-  const targetSocketId = userSockets[user_id];
-  if (targetSocketId) {
-    io.to(targetSocketId).emit("receive-notification", { message });
-    console.log(`✅ Notification sent to user ${user_id}`);
-  } else {
-    console.log(`⚠️ User ${user_id} is not connected`);
-  }
+//   const targetSocketId = userSockets[user_id];
+//   if (targetSocketId) {
+//     io.to(targetSocketId).emit("receive-notification", { message });
+//     console.log(`✅ Notification sent to user ${user_id}`);
+//   } else {
+//     console.log(`⚠️ User ${user_id} is not connected`);
+//   }
 
-  res.sendStatus(200);
-});
+//   res.sendStatus(200);
+// });
 
+const userRateLimit = {};
 // Middleware autentikasi untuk koneksi socket.io
 // Digunakan untuk memverifikasi token autentikasi dari client sebelum koneksi socket dibuka
 io.use((socket, next) => {
@@ -98,20 +99,22 @@ io.use((socket, next) => {
     // Bandingkan token dari client dengan private key yang telah dienkripsi menggunakan bcrypt
     bcrypt.compare(privateKey, token, (err, result) => {
       if (err || !result) {
-        // Jika terjadi error atau hasil tidak cocok, tolak koneksi
         console.log("Tidak Cocok Token nya");
-
-        next(new Error("Authentication Failed"));
+        return next(new Error("Authentication Failed"));
       }
-      // ✅ Token cocok → Cek apakah user_id sudah terhubung sebelumnya
+
+      // ✅ Putuskan koneksi lama jika ada
       if (userSockets[user_id] && userSockets[user_id] !== socket.id) {
-        console.log(
-          `⚠️ User ${user_id} sudah login dari socket lain. Menolak koneksi.`
-        );
-        return next(new Error("User already connected"));
+        const oldSocketId = userSockets[user_id];
+        const oldSocket = io.sockets.sockets.get(oldSocketId);
+
+        if (oldSocket) {
+          console.log(`🔌 Memutus koneksi lama user ${user_id}`);
+          oldSocket.disconnect(true); // Putuskan koneksi lama
+        }
       }
 
-      next();
+      next(); // ✅ aman karena hanya dipanggil kalau semuanya lolos
     });
   } else {
     console.error("Tidak Ada data authenticasi pada Handshake");
@@ -129,19 +132,49 @@ io.use((socket, next) => {
 
   // Simpan mapping antara userId dan socket.id untuk keperluan pengiriman notifikasi personal
   if (userId) {
+    socket.userId = userId;
     userSockets[userId] = socket.id;
   }
+  // 1️⃣ Custom event dari client untuk kirim notifikasi ke user lain
+  socket.on("client-send-notification", ({ target_user_id, message }) => {
+    const now = Date.now();
+    const lastSent = userRateLimit[socket.userId] || 0;
+
+    if (now - lastSent < 2000) {
+      console.log("🚫 Rate limit dilanggar");
+      return;
+    }
+
+    userRateLimit[socket.userId] = now;
+
+    // Validasi isi payload
+    if (
+      !target_user_id ||
+      typeof target_user_id !== "number" ||
+      typeof message !== "string" ||
+      message.trim().length === 0 ||
+      message.length > 300
+    ) {
+      console.log(`🚫 Payload mencurigakan dari user ${socket.userId}`);
+      return;
+    }
+
+    const targetSocketId = userSockets[target_user_id];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("receive-notification", { message });
+      console.log(`✅ Notifikasi dikirim ke user ${target_user_id}`);
+    } else {
+      console.log(`⚠️ User ${target_user_id} tidak online`);
+    }
+  });
 
   // Event listener ketika socket disconnect (terputus)
   socket.on("disconnect", () => {
     console.log(`❌ User disconnected: ${socket.id}`);
 
-    // Hapus user dari daftar userSockets jika socket.id yang disconnect cocok
-    for (const [uid, sid] of Object.entries(userSockets)) {
-      if (sid === socket.id) {
-        delete userSockets[uid];
-        break;
-      }
+    // Hapus hanya jika socket yang disconnect adalah yang aktif
+    if (userSockets[userId] === socket.id) {
+      delete userSockets[userId];
     }
   });
 });
